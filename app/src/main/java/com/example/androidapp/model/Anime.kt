@@ -1,4 +1,4 @@
-package com.example.androidapp.screens
+package com.example.androidapp.model
 
 enum class Genre(val s: String) {
     ACTION("Action"),
@@ -14,8 +14,20 @@ enum class Genre(val s: String) {
     THRILLER("Thriller"),
     WESTERN("Western"),
     SCI_FI("Sci-Fi"),
-    AWARD_WINNING("Award Winning")
+    AWARD_WINNING("Award Winning"),
+    UNKNOWN("Unknown");
+
+    companion object {
+        fun fromString(name: String): Genre {
+            return entries.find { it.s.equals(name, ignoreCase = true) } ?: UNKNOWN
+        }
+    }
 }
+
+data class StreamingUrl(
+    val name: String = "",
+    val url: String = ""
+)
 
 data class Anime(
     val id: Int,
@@ -25,5 +37,5 @@ data class Anime(
     val smallImageUrl: String,
     val year: Int,
     val genres: List<Genre>,
-    val streamingUrls: List<String>
+    val streamingUrls: List<StreamingUrl>?
 )

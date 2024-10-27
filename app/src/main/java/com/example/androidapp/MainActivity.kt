@@ -1,29 +1,32 @@
 package com.example.androidapp
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,8 +35,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.androidapp.screens.Anime
-import com.example.androidapp.screens.AnimeViewModel
+import com.example.androidapp.model.Anime
+import com.example.androidapp.model.AnimeViewModel
 import com.example.androidapp.screens.DetailScreen
 import com.example.androidapp.screens.HomeScreen
 import com.example.androidapp.screens.ListScreen
@@ -66,20 +69,10 @@ fun MainScreen() {
         currentRoute.startsWith(Screen.Detail.title) -> false
         else -> true
     }
-    val showTopBar = currentRoute?.startsWith(Screen.Detail.title) ?: false
+
+    val isLoading by animeViewModel.isLoading.collectAsState()
 
     Scaffold(
-        topBar = @Composable {
-            if (showTopBar) {
-                val id = navBackStackEntry?.arguments?.getString("${R.string.detail_screen_id}")
-                val anime = id?.let { animeViewModel.anime.findLast { it.id.toString() == id } }
-
-                anime?.let {
-                    TopBar(navController, it.title)
-                }
-            }
-        },
-
         bottomBar = {
             if (showBottomBar) {
                 BottomBar(navController = navController, currentRoute = currentRoute ?: "")
@@ -93,6 +86,11 @@ fun MainScreen() {
         ) {
             composable(Screen.Home.title) { HomeScreen() }
             composable(Screen.List.title) {
+                if (isLoading) {
+                    FullScreenProgress()
+                    return@composable
+                }
+
                 ListScreen(animeViewModel) { animeId ->
                     navController.navigate(Screen.Detail.title + "/$animeId") {
                     }
@@ -100,9 +98,34 @@ fun MainScreen() {
             }
             composable(Screen.Detail.title + "/{${R.string.detail_screen_id}}") { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("${R.string.detail_screen_id}")
-                val anime: Anime =
-                    animeViewModel.anime.findLast { it.id.toString() == id } ?: return@composable
-                DetailScreen(anime)
+                    ?.toIntOrNull()
+                val anime: Anime? = id?.let {
+                    animeViewModel.anime.value.find { it.id == id }
+                }
+
+                if (anime != null) {
+                    DetailScreen(anime, onClickPreviousButton = {
+                        navController.popBackStack()
+                    })
+                } else {
+                    Box {
+                        Text(
+                            text = stringResource(R.string.page_with_id_not_found),
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        Button(
+                            onClick = {
+                                navController.popBackStack()
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
+                        ) {
+                            Text(text = stringResource(R.string.rotate_to_list_screen))
+                        }
+                    }
+
+                }
             }
         }
     }
@@ -134,32 +157,21 @@ fun BottomBar(navController: NavController, currentRoute: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(navController: NavController, title: String) {
-    TopAppBar(
-        title = {
-            Text(
-                text = title,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        navigationIcon = {
-            IconButton(
-                onClick = { navController.popBackStack() }
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = stringResource(R.string.back_arrow_description),
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        ),
-        modifier = Modifier.height(70.dp)
-    )
+fun FullScreenProgress() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = { }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.width(40.dp),
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
 }
