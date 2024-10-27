@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">AndroidApp</string>
+    <string name="genres_string">Жанры</string>
+    <string name="release_year">Год выхода</string>
+    <string name="hosting_urls">Посмотреть можно здесь</string>
+    <string name="back_arrow_description">Назад</string>
+    <string name="detail_screen_id">Id</string>
+</resources>
