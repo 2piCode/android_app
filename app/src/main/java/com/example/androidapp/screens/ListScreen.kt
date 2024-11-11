@@ -40,9 +40,10 @@ import com.example.androidapp.model.AnimeViewModel
 
 @Composable
 fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
-    val animeList by viewModel.anime.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
+    val viewModelUiState by viewModel.uiState.collectAsState()
+    val animeList: List<Anime> = viewModelUiState.animeList
+    val searchQuery: String = viewModelUiState.searchQuery
+    val searchResults: List<Anime> = viewModelUiState.searchResults
 
     Column(
         modifier = Modifier

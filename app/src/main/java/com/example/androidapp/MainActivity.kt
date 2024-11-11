@@ -1,6 +1,5 @@
 package com.example.androidapp
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,7 +32,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
 import com.example.androidapp.screens.DetailScreen
 import com.example.androidapp.screens.HomeScreen
@@ -70,7 +66,7 @@ fun MainScreen() {
         else -> true
     }
 
-    val isLoading by animeViewModel.isLoading.collectAsState()
+    val viewModelUiState by animeViewModel.uiState.collectAsState()
 
     Scaffold(
         bottomBar = {
@@ -86,7 +82,7 @@ fun MainScreen() {
         ) {
             composable(Screen.Home.title) { HomeScreen() }
             composable(Screen.List.title) {
-                if (isLoading) {
+                if (viewModelUiState.isLoading) {
                     FullScreenProgress()
                     return@composable
                 }
@@ -99,33 +95,9 @@ fun MainScreen() {
             composable(Screen.Detail.title + "/{${R.string.detail_screen_id}}") { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("${R.string.detail_screen_id}")
                     ?.toIntOrNull()
-                val anime: Anime? = id?.let {
-                    animeViewModel.anime.value.find { it.id == id }
-                }
-
-                if (anime != null) {
-                    DetailScreen(anime, onClickPreviousButton = {
-                        navController.popBackStack()
-                    })
-                } else {
-                    Box {
-                        Text(
-                            text = stringResource(R.string.page_with_id_not_found),
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        Button(
-                            onClick = {
-                                navController.popBackStack()
-                            },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp)
-                        ) {
-                            Text(text = stringResource(R.string.rotate_to_list_screen))
-                        }
-                    }
-
-                }
+                DetailScreen(id, animeViewModel, onClickPreviousButton = {
+                    navController.popBackStack()
+                })
             }
         }
     }

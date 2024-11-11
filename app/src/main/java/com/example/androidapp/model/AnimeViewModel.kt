@@ -2,60 +2,62 @@ package com.example.androidapp.model
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.androidapp.network.RetrofitInstance
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okio.IOException
 import retrofit2.HttpException
 
-class AnimeViewModel : ViewModel() {
-    private val _anime = MutableStateFlow<List<Anime>>(emptyList())
-    val anime: StateFlow<List<Anime>> = _anime
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
-
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
-
-    private val _searchResults = MutableStateFlow<List<Anime>>(emptyList())
-    val searchResults: StateFlow<List<Anime>> = _searchResults
+class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()) : ViewModel() {
+    private val _uiState = MutableStateFlow(AnimeUiState())
+    val uiState: StateFlow<AnimeUiState> = _uiState
 
     private var searchJob: Job? = null
+
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        _uiState.update { currentState ->
+            currentState.copy(
+                isLoading = false,
+                errorMessage = "Неизвестная ошибка: ${throwable.localizedMessage}"
+            )
+        }
+    }
 
     init {
         loadInitialAnime()
     }
 
     private fun loadInitialAnime() {
-        viewModelScope.launch {
-            _isLoading.value = true
+        viewModelScope.launch(exceptionHandler) {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val animeList: MutableList<Anime> = mutableListOf()
+            val animeList = mutableListOf<Anime>()
             var id = 0
+
             while (animeList.size < COUNT_ANIME_ON_PAGE) {
                 try {
-                    val response = RetrofitInstance.api.getAnimeDetails(id++)
-                    val fetchedAnime = response.data.toAnime()
+                    val fetchedAnime = repository.getAnimeDetails(id++)
                     animeList.add(fetchedAnime)
                 } catch (_: Exception) {
                     // Некоторые аниме могут быть недоступны, пропускаем их
                 }
             }
 
-            _isLoading.value = false
-            _anime.value = animeList
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    animeList = animeList
+                )
+            }
         }
     }
 
     fun onSearchQueryChange(query: String) {
-        _searchQuery.value = query
+        _uiState.update { it.copy(searchQuery = query) }
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(500)
@@ -65,36 +67,58 @@ class AnimeViewModel : ViewModel() {
 
     private fun searchAnime(query: String) {
         if (query.isBlank()) {
-            _searchResults.value = emptyList()
-            _searchQuery.value = ""
+            _uiState.update {
+                it.copy(
+                    searchResults = emptyList(),
+                    searchQuery = ""
+                )
+            }
             return
         }
 
-        _searchQuery.value = query
-
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
+        viewModelScope.launch(exceptionHandler) {
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    errorMessage = null,
+                    searchResults = emptyList()
+                )
+            }
 
             try {
-                val response = RetrofitInstance.api.searchAnime(query)
-                val results = response.data.map { it.toAnime() }
-                _searchResults.value = results
-                _anime.value = (_anime.value + results).distinctBy { it.id }
-            } catch (e: HttpException) {
-                when (e.code()) {
-                    404 -> _errorMessage.value = "Аниме не найдено."
-                    else -> _errorMessage.value = "Ошибка сети: ${e.localizedMessage}"
+                val results = repository.searchAnime(query)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        searchResults = results,
+                        animeList = (it.animeList + results).distinctBy { sIt -> sIt.id }
+                    )
                 }
-                _searchResults.value = emptyList()
+            } catch (e: HttpException) {
+                val message = when (e.code()) {
+                    404 -> "Аниме не найдено."
+                    else -> "Ошибка сети: ${e.localizedMessage}"
+                }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = message
+                    )
+                }
             } catch (e: IOException) {
-                _errorMessage.value = "Проблемы с подключением к интернету."
-                _searchResults.value = emptyList()
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Проблемы с подключением к интернету."
+                    )
+                }
             } catch (e: Exception) {
-                _errorMessage.value = "Неизвестная ошибка: ${e.localizedMessage}"
-                _searchResults.value = emptyList()
-            } finally {
-                _isLoading.value = false
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Неизвестная ошибка: ${e.localizedMessage}"
+                    )
+                }
             }
         }
     }
