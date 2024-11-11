@@ -18,12 +18,44 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
 
     private var searchJob: Job? = null
 
-    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        _uiState.update { currentState ->
-            currentState.copy(
-                isLoading = false,
-                errorMessage = "Неизвестная ошибка: ${throwable.localizedMessage}"
-            )
+    private val exceptionHandler = CoroutineExceptionHandler { _, exception ->
+        when (exception) {
+            is ArithmeticException -> println("Обработано ArithmeticException: ${exception.message}")
+            is IllegalArgumentException -> println("Обработано IllegalArgumentException: ${exception.message}")
+            else -> println("Обработано другое исключение: ${exception.message}")
+        }
+
+        when (exception) {
+            is HttpException -> {
+                val message = when (exception.code()) {
+                    404 -> "Аниме не найдено."
+                    else -> "Ошибка сети: ${exception.localizedMessage}"
+                }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = message
+                    )
+                }
+            }
+
+            is IOException -> {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Проблемы с подключением к интернету."
+                    )
+                }
+            }
+
+            is Exception -> {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Неизвестная ошибка: ${exception.localizedMessage}"
+                    )
+                }
+            }
         }
     }
 
@@ -85,40 +117,13 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
                 )
             }
 
-            try {
-                val results = repository.searchAnime(query)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        searchResults = results,
-                        animeList = (it.animeList + results).distinctBy { sIt -> sIt.id }
-                    )
-                }
-            } catch (e: HttpException) {
-                val message = when (e.code()) {
-                    404 -> "Аниме не найдено."
-                    else -> "Ошибка сети: ${e.localizedMessage}"
-                }
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = message
-                    )
-                }
-            } catch (e: IOException) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Проблемы с подключением к интернету."
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Неизвестная ошибка: ${e.localizedMessage}"
-                    )
-                }
+            val results = repository.searchAnime(query)
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    searchResults = results,
+                    animeList = (it.animeList + results).distinctBy { sIt -> sIt.id }
+                )
             }
         }
     }
