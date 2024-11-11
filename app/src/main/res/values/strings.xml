@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">AndroidApp</string>
+    <string name="genres_string">Жанры</string>
+    <string name="release_year">Год выхода</string>
+    <string name="hosting_urls">Посмотреть можно здесь</string>
+    <string name="back_arrow_description">Назад</string>
+    <string name="detail_screen_id">Id</string>
+    <string name="search_text_without_query">Поиск аниме</string>
+    <string name="search_icon_description">Поиск</string>
+    <string name="search_not_found_result">Нет результатов для</string>
+    <string name="rotate_to_list_screen">Вернуться к списку</string>
+    <string name="page_with_id_not_found">Аниме не найдено</string>
+"
+</resources>
