@@ -16,6 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,11 +30,18 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import coil.compose.rememberAsyncImagePainter
 import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
+import java.io.File
 
 @Composable
 fun DetailScreen(animeId: Int?, viewModel: AnimeViewModel, onClickPreviousButton: () -> Unit) {
-    val anime: Anime? = animeId?.let {
-        viewModel.uiState.value.animeList.find { it.id == animeId }
+    val uiState = viewModel.uiState.collectAsState().value
+
+    val animeFromSaved = animeId?.let {
+        uiState.savedAnime.find { it.id == animeId }
+    }
+
+    val anime: Anime? = animeFromSaved ?: animeId?.let {
+        uiState.animeList.find { it.id == animeId }
     }
 
     if (anime == null) {
@@ -110,8 +118,16 @@ fun AnimeDetailScreen(anime: Anime, onClickPreviousButton: () -> Unit) {
                 )
             }
 
+            val imagePainter = rememberAsyncImagePainter(
+                model = if (!anime.localImagePath.isNullOrEmpty()) {
+                    File(anime.localImagePath)
+                } else {
+                    anime.fullImageUrl
+                }
+            )
+
             Image(
-                painter = rememberAsyncImagePainter(anime.fullImageUrl),
+                painter = imagePainter,
                 contentDescription = null,
                 modifier = Modifier
                     .size(300.dp)

@@ -5,5 +5,8 @@ data class AnimeUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val searchQuery: String = "",
-    val searchResults: List<Anime> = emptyList()
+    val searchResults: List<Anime> = emptyList(),
+    val startDate: String = "",
+    val endDate: String = "",
+    val savedAnime: List<Anime> = emptyList()
 )

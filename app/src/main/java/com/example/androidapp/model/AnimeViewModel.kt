@@ -1,7 +1,9 @@
 package com.example.androidapp.model
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.squareup.moshi.JsonDataException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -12,19 +14,16 @@ import kotlinx.coroutines.launch
 import okio.IOException
 import retrofit2.HttpException
 
-class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()) : ViewModel() {
+class AnimeViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+    private val repository: AnimeRepository = AnimeRepository(application.applicationContext)
     private val _uiState = MutableStateFlow(AnimeUiState())
     val uiState: StateFlow<AnimeUiState> = _uiState
 
     private var searchJob: Job? = null
 
     private val exceptionHandler = CoroutineExceptionHandler { _, exception ->
-        when (exception) {
-            is ArithmeticException -> println("Обработано ArithmeticException: ${exception.message}")
-            is IllegalArgumentException -> println("Обработано IllegalArgumentException: ${exception.message}")
-            else -> println("Обработано другое исключение: ${exception.message}")
-        }
-
         when (exception) {
             is HttpException -> {
                 val message = when (exception.code()) {
@@ -60,7 +59,25 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
     }
 
     init {
-        loadInitialAnime()
+        viewModelScope.launch {
+            repository.searchFlow.collect { flow ->
+                if (flow.query.isBlank() && flow.startDate.isBlank() && flow.endDate.isBlank()) {
+                    loadInitialAnime()
+                } else {
+                    onSearchCriteriaChange(
+                        flow.query,
+                        flow.startDate,
+                        flow.endDate
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getAllSavedAnime().collect { savedList ->
+                _uiState.value = _uiState.value.copy(savedAnime = savedList)
+            }
+        }
     }
 
     private fun loadInitialAnime() {
@@ -74,7 +91,8 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
                 try {
                     val fetchedAnime = repository.getAnimeDetails(id++)
                     animeList.add(fetchedAnime)
-                } catch (_: Exception) {
+                } catch (_: JsonDataException) {
+                } catch (_: HttpException) {
                     // Некоторые аниме могут быть недоступны, пропускаем их
                 }
             }
@@ -88,17 +106,33 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
         }
     }
 
-    fun onSearchQueryChange(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+    fun onSearchCriteriaChange(
+        query: String = _uiState.value.searchQuery,
+        startDate: String = _uiState.value.startDate,
+        endDate: String = _uiState.value.endDate
+    ) {
+        viewModelScope.launch {
+            repository.saveQuery(query);
+            repository.saveStartDate(startDate)
+            repository.saveEndDate(endDate)
+            _uiState.update {
+                it.copy(
+                    searchQuery = query,
+                    startDate = startDate,
+                    endDate = endDate
+                )
+            }
+        }
+
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(500)
-            searchAnime(query)
+            searchAnime(query, startDate, endDate)
         }
     }
 
-    private fun searchAnime(query: String) {
-        if (query.isBlank()) {
+    private fun searchAnime(query: String, startDate: String, endDate: String) {
+        if (query.isBlank() && startDate.isBlank() && endDate.isBlank()) {
             _uiState.update {
                 it.copy(
                     searchResults = emptyList(),
@@ -117,13 +151,25 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
                 )
             }
 
-            val results = repository.searchAnime(query)
+            val results = repository.searchAnime(query, startDate, endDate)
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     searchResults = results,
                     animeList = (it.animeList + results).distinctBy { sIt -> sIt.id }
                 )
+            }
+        }
+    }
+
+    fun toggleSaveAnime(anime: Anime) {
+        viewModelScope.launch {
+            repository.isAnimeSaved(anime.id).let { isSaved ->
+                if (isSaved) {
+                    repository.removeAnime(anime)
+                } else {
+                    repository.saveAnime(anime)
+                }
             }
         }
     }
