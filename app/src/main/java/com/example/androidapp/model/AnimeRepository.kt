@@ -1,12 +1,20 @@
 package com.example.androidapp.model
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.androidapp.data.database.AnimeDatabase
 import com.example.androidapp.network.RetrofitInstance
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URL
 
 private val Context.dataStore by preferencesDataStore(name = "anime_preferences")
 
@@ -17,6 +25,8 @@ data class SearchDto(
 )
 
 class AnimeRepository(private val context: Context) {
+    private val animeDao = AnimeDatabase.getDatabase(context).animeDao()
+
     val searchFlow: Flow<SearchDto> = context.dataStore.data
         .map { preferences ->
             return@map SearchDto(
@@ -60,6 +70,55 @@ class AnimeRepository(private val context: Context) {
         )
         return response.data.map { it.toAnime() }
     }
+
+    suspend fun saveAnime(anime: Anime) {
+        val localPath = downloadAndSaveImage(anime.fullImageUrl, anime.id)
+        val animeWithLocalPath = anime.copy(localImagePath = localPath)
+        animeDao.insertAnime(animeWithLocalPath)
+    }
+
+    suspend fun removeAnime(anime: Anime) {
+        try {
+            animeDao.deleteAnime(anime)
+            anime.localImagePath?.let { path ->
+                val file = File(path)
+                if (file.exists()) {
+                    val deleted = file.delete()
+                    if (!deleted) {
+                        println("Не удалось удалить файл: $path")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private suspend fun downloadAndSaveImage(imageUrl: String, animeId: Int): String? {
+        return try {
+            val bitmap = BitmapFactory.decodeStream(withContext(Dispatchers.IO) {
+                URL(imageUrl).openStream()
+            })
+
+            withContext(Dispatchers.IO) {
+                val filename = "anime_image_$animeId.jpg"
+                val file = File(context.filesDir, filename)
+                val fos = FileOutputStream(file)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+                fos.flush()
+                fos.close()
+                file.absolutePath
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun getAllSavedAnime(): Flow<List<Anime>> = animeDao.getAllSavedAnime()
+
+    suspend fun isAnimeSaved(animeId: Int): Boolean = animeDao.isAnimeSaved(animeId)
 
     companion object {
         val QUERY_KEY = stringPreferencesKey("query")

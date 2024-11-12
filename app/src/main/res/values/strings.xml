@@ -10,5 +10,8 @@
     <string name="search_not_found_result">Нет результатов для</string>
     <string name="rotate_to_list_screen">Вернуться к списку</string>
     <string name="page_with_id_not_found">Аниме не найдено</string>
+    <string name="add_to_favorites">Добавить в избранное</string>
+    <string name="remove_from_favorites">Удалить из избранного</string>
+
 "
 </resources>

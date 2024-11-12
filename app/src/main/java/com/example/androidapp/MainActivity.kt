@@ -34,6 +34,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.androidapp.model.AnimeViewModel
 import com.example.androidapp.screens.DetailScreen
+import com.example.androidapp.screens.FavoriteScreen
 import com.example.androidapp.screens.HomeScreen
 import com.example.androidapp.screens.ListScreen
 import com.example.androidapp.screens.Screen
@@ -82,12 +83,28 @@ fun MainScreen() {
         ) {
             composable(Screen.Home.title) { HomeScreen() }
             composable(Screen.List.title) {
+                if (viewModelUiState.errorMessage != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "Ошибка при подключении: ${viewModelUiState.errorMessage}")
+                    }
+                    return@composable
+                }
+
                 if (viewModelUiState.isLoading) {
                     FullScreenProgress()
                     return@composable
                 }
 
                 ListScreen(animeViewModel) { animeId ->
+                    navController.navigate(Screen.Detail.title + "/$animeId") {
+                    }
+                }
+            }
+            composable(Screen.Favorite.title) {
+                FavoriteScreen(animeViewModel) { animeId ->
                     navController.navigate(Screen.Detail.title + "/$animeId") {
                     }
                 }
@@ -107,7 +124,8 @@ fun MainScreen() {
 fun BottomBar(navController: NavController, currentRoute: String) {
     val bottomItems = listOf(
         Screen.Home,
-        Screen.List
+        Screen.List,
+        Screen.Favorite
     )
 
     NavigationBar {

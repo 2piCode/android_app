@@ -69,8 +69,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
     kapt(libs.moshi.kotlin.codegen)
 
-    implementation(libs.androidx.foundation)
+    implementation("com.google.code.gson:gson:2.10.1")
 
+    implementation(libs.androidx.foundation)
     testImplementation(libs.junit)
     implementation(libs.coil.compose)
     implementation(libs.androidx.constraintlayout.compose)

@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +47,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.androidapp.R
 import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -55,6 +58,7 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
     val animeList: List<Anime> = viewModelUiState.animeList
     val searchQuery: String = viewModelUiState.searchQuery
     val searchResults: List<Anime> = viewModelUiState.searchResults
+    val savedAnime: List<Anime> = viewModelUiState.savedAnime
 
     val context = LocalContext.current
 
@@ -160,7 +164,9 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
         if (searchQuery.isBlank() && selectedStartDate.isBlank() && selectedEndDate.isBlank()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(animeList.take(AnimeViewModel.COUNT_ANIME_ON_PAGE)) { anime ->
-                    AnimeListItem(anime = anime, onClick = { onClick(anime.id) })
+                    AnimeListItem(anime = anime, isSaved = savedAnime.any { it.id == anime.id },
+                        onClick = { onClick(anime.id) },
+                        onSaveClick = { viewModel.toggleSaveAnime(anime) })
                 }
             }
         } else {
@@ -169,7 +175,9 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(searchResults) { anime ->
-                        AnimeListItem(anime = anime, onClick = { onClick(anime.id) })
+                        AnimeListItem(anime = anime, isSaved = savedAnime.any { it.id == anime.id },
+                            onClick = { onClick(anime.id) },
+                            onSaveClick = { viewModel.toggleSaveAnime(anime) })
                     }
                 }
             } else {
@@ -185,7 +193,7 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
 }
 
 @Composable
-fun AnimeListItem(anime: Anime, onClick: () -> Unit) {
+fun AnimeListItem(anime: Anime, isSaved: Boolean, onClick: () -> Unit, onSaveClick: () -> Unit) {
     ListItem(
         modifier = Modifier
             .clickable { onClick() }
@@ -198,8 +206,16 @@ fun AnimeListItem(anime: Anime, onClick: () -> Unit) {
                     .wrapContentHeight(),
                 verticalAlignment = Alignment.Top,
             ) {
+                val imagePainter = rememberAsyncImagePainter(
+                    model = if (!anime.localImagePath.isNullOrEmpty()) {
+                        File(anime.localImagePath)
+                    } else {
+                        anime.fullImageUrl
+                    }
+                )
+
                 Image(
-                    painter = rememberAsyncImagePainter(anime.fullImageUrl),
+                    painter = imagePainter,
                     contentDescription = null,
                     modifier = Modifier
                         .size(150.dp)
@@ -219,6 +235,21 @@ fun AnimeListItem(anime: Anime, onClick: () -> Unit) {
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+
+                IconButton(onClick = { onSaveClick() }) {
+                    if (isSaved) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.heart),
+                            contentDescription = stringResource(R.string.remove_from_favorites),
+                            tint = Color.Red
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.heart_empty),
+                            contentDescription = stringResource(R.string.add_to_favorites)
+                        )
+                    }
                 }
             }
         }

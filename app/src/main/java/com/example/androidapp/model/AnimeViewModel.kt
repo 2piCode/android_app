@@ -3,6 +3,7 @@ package com.example.androidapp.model
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.squareup.moshi.JsonDataException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,12 +24,6 @@ class AnimeViewModel(
     private var searchJob: Job? = null
 
     private val exceptionHandler = CoroutineExceptionHandler { _, exception ->
-        when (exception) {
-            is ArithmeticException -> println("Обработано ArithmeticException: ${exception.message}")
-            is IllegalArgumentException -> println("Обработано IllegalArgumentException: ${exception.message}")
-            else -> println("Обработано другое исключение: ${exception.message}")
-        }
-
         when (exception) {
             is HttpException -> {
                 val message = when (exception.code()) {
@@ -77,6 +72,12 @@ class AnimeViewModel(
                 }
             }
         }
+
+        viewModelScope.launch {
+            repository.getAllSavedAnime().collect { savedList ->
+                _uiState.value = _uiState.value.copy(savedAnime = savedList)
+            }
+        }
     }
 
     private fun loadInitialAnime() {
@@ -90,7 +91,8 @@ class AnimeViewModel(
                 try {
                     val fetchedAnime = repository.getAnimeDetails(id++)
                     animeList.add(fetchedAnime)
-                } catch (_: Exception) {
+                } catch (_: JsonDataException) {
+                } catch (_: HttpException) {
                     // Некоторые аниме могут быть недоступны, пропускаем их
                 }
             }
@@ -156,6 +158,18 @@ class AnimeViewModel(
                     searchResults = results,
                     animeList = (it.animeList + results).distinctBy { sIt -> sIt.id }
                 )
+            }
+        }
+    }
+
+    fun toggleSaveAnime(anime: Anime) {
+        viewModelScope.launch {
+            repository.isAnimeSaved(anime.id).let { isSaved ->
+                if (isSaved) {
+                    repository.removeAnime(anime)
+                } else {
+                    repository.saveAnime(anime)
+                }
             }
         }
     }

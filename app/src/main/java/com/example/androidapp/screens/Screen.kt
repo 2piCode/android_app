@@ -8,6 +8,7 @@ sealed class Screen(
 ) {
     data object Home : Screen("Home", icon = R.drawable.home_page_icon)
     data object List : Screen("List", icon = R.drawable.list_page_icon)
+    data object Favorite: Screen("Favorite", icon = R.drawable.heart_empty)
     data object Detail : Screen("Anime", icon = -1)
 }
 
