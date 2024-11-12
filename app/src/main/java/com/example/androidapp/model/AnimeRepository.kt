@@ -7,7 +7,16 @@ class AnimeRepository {
         return RetrofitInstance.api.getAnimeDetails(id).data.toAnime()
     }
 
-    suspend fun searchAnime(query: String): List<Anime> {
-        return RetrofitInstance.api.searchAnime(query).data.map { it.toAnime() }
+    suspend fun searchAnime(
+        query: String,
+        startDate: String,
+        endDate: String
+    ): List<Anime> {
+        val response = RetrofitInstance.api.searchAnime(
+            query = query,
+            startDate = startDate,
+            endDate = endDate
+        )
+        return response.data.map { it.toAnime() }
     }
 }

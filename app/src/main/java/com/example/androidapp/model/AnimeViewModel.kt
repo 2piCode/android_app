@@ -88,17 +88,27 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
         }
     }
 
-    fun onSearchQueryChange(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+    fun onSearchCriteriaChange(
+        query: String = _uiState.value.searchQuery,
+        startDate: String = _uiState.value.startDate,
+        endDate: String = _uiState.value.endDate
+    ) {
+        _uiState.update {
+            it.copy(
+                searchQuery = query,
+                startDate = startDate,
+                endDate = endDate
+            )
+        }
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(500)
-            searchAnime(query)
+            searchAnime(query, startDate, endDate)
         }
     }
 
-    private fun searchAnime(query: String) {
-        if (query.isBlank()) {
+    private fun searchAnime(query: String, startDate: String, endDate: String) {
+        if (query.isBlank() && startDate.isBlank() && endDate.isBlank()) {
             _uiState.update {
                 it.copy(
                     searchResults = emptyList(),
@@ -117,7 +127,7 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
                 )
             }
 
-            val results = repository.searchAnime(query)
+            val results = repository.searchAnime(query, startDate, endDate)
             _uiState.update {
                 it.copy(
                     isLoading = false,

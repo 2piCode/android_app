@@ -1,8 +1,11 @@
 package com.example.androidapp.screens
 
+import android.app.DatePickerDialog
+import android.widget.DatePicker
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,13 +26,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,6 +45,9 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.androidapp.R
 import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
@@ -44,6 +55,85 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
     val animeList: List<Anime> = viewModelUiState.animeList
     val searchQuery: String = viewModelUiState.searchQuery
     val searchResults: List<Anime> = viewModelUiState.searchResults
+
+    val context = LocalContext.current
+
+    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+
+    var selectedStartDate by remember { mutableStateOf(viewModelUiState.startDate) }
+    var selectedEndDate by remember { mutableStateOf(viewModelUiState.endDate) }
+
+    if (showStartDatePicker) {
+        val calendar = Calendar.getInstance()
+        if (selectedStartDate.isNotEmpty()) {
+            val date = dateFormat.parse(selectedStartDate)
+            date?.let { calendar.time = it }
+        }
+
+        DatePickerDialog(
+            context,
+            { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+                val newDate = Calendar.getInstance()
+                newDate.set(year, month, dayOfMonth)
+                selectedStartDate = dateFormat.format(newDate.time)
+                showStartDatePicker = false
+                viewModel.onSearchCriteriaChange(startDate = selectedStartDate)
+
+                if (selectedEndDate.isNotEmpty()) {
+                    val start = dateFormat.parse(selectedStartDate)
+                    val end = dateFormat.parse(selectedEndDate)
+                    if (start != null && end != null && start.after(end)) {
+                        selectedEndDate = ""
+                        viewModel.onSearchCriteriaChange(endDate = "")
+                    }
+                }
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            if (selectedEndDate.isNotEmpty()) {
+                val end = dateFormat.parse(selectedEndDate)
+                end?.let { datePicker.minDate = 0L; datePicker.maxDate = it.time }
+            }
+
+            setOnCancelListener { showStartDatePicker = false }
+            show()
+        }
+    }
+
+    if (showEndDatePicker) {
+        val calendar = Calendar.getInstance()
+        if (selectedEndDate.isNotEmpty()) {
+            val date = dateFormat.parse(selectedEndDate)
+            date?.let { calendar.time = it }
+        }
+
+        DatePickerDialog(
+            context,
+            { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+                val newDate = Calendar.getInstance()
+                newDate.set(year, month, dayOfMonth)
+                selectedEndDate = dateFormat.format(newDate.time)
+                showEndDatePicker = false
+                viewModel.onSearchCriteriaChange(endDate = selectedEndDate)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            if (selectedStartDate.isNotEmpty()) {
+                val start = dateFormat.parse(selectedStartDate)
+                start?.let { datePicker.minDate = it.time }
+            }
+
+            setOnCancelListener { showEndDatePicker = false }
+            show()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -53,13 +143,26 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
 
         SearchBar(
             query = searchQuery,
-            onQueryChange = { viewModel.onSearchQueryChange(it) },
+            onQueryChange = { query ->
+                viewModel.onSearchCriteriaChange(query = query)
+            },
+            onClearFilters = {
+                viewModel.onSearchCriteriaChange(
+                    query = "",
+                    startDate = "",
+                    endDate = ""
+                )
+            },
+            onStartDateClick = { showStartDatePicker = true },
+            onEndDateClick = { showEndDatePicker = true },
+            startDate = selectedStartDate,
+            endDate = selectedEndDate,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (searchQuery.isBlank()) {
+        if (searchQuery.isBlank() && selectedStartDate.isBlank() && selectedEndDate.isBlank()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(animeList.take(AnimeViewModel.COUNT_ANIME_ON_PAGE)) { anime ->
                     AnimeListItem(anime = anime, onClick = { onClick(anime.id) })
@@ -131,6 +234,11 @@ fun AnimeListItem(anime: Anime, onClick: () -> Unit) {
 fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
+    onClearFilters: () -> Unit,
+    onStartDateClick: () -> Unit,
+    onEndDateClick: () -> Unit,
+    startDate: String,
+    endDate: String,
     modifier: Modifier = Modifier
 ) {
     TextField(
@@ -146,4 +254,49 @@ fun SearchBar(
         singleLine = true,
         modifier = modifier
     )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.Top,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            TextButton(onClick = onStartDateClick) {
+                Text(text = "Стартовая дата")
+            }
+            if (startDate.isNotEmpty()) {
+                Text(
+                    text = startDate,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            TextButton(onClick = onEndDateClick) {
+                Text(text = "Конечная дата")
+            }
+            if (endDate.isNotEmpty()) {
+                Text(
+                    text = endDate,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Row(
+        horizontalArrangement = Arrangement.End,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        TextButton(onClick = onClearFilters) {
+            Text("Clear Filters")
+        }
+    }
 }

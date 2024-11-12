@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+//    id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.kapt")
 }
 
@@ -52,6 +53,10 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.constraintlayout)
 
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
+
     implementation(libs.retrofit)
     implementation(libs.converter.moshi)
     implementation(libs.moshi)
@@ -60,6 +65,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     kapt(libs.moshi.kotlin.codegen)
+
+    implementation(libs.androidx.foundation)
 
     testImplementation(libs.junit)
     implementation(libs.coil.compose)
