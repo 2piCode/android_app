@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.androidapp.R
+import com.example.androidapp.data.SearchNotification
 import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
 import java.io.File
@@ -53,7 +54,7 @@ import java.util.Calendar
 import java.util.Locale
 
 @Composable
-fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
+fun ListScreen(viewModel: AnimeViewModel, searchNotification: SearchNotification, onClick: (Int) -> Unit) {
     val viewModelUiState by viewModel.uiState.collectAsState()
     val animeList: List<Anime> = viewModelUiState.animeList
     val searchQuery: String = viewModelUiState.searchQuery
@@ -161,7 +162,7 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (searchQuery.isBlank() && selectedStartDate.isBlank() && selectedEndDate.isBlank()) {
+        if (!searchNotification.isChangedSearch()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(animeList.take(AnimeViewModel.COUNT_ANIME_ON_PAGE)) { anime ->
                     AnimeListItem(anime = anime, isSaved = savedAnime.any { it.id == anime.id },

@@ -83,10 +83,7 @@ class AnimeRepository(private val context: Context) {
             anime.localImagePath?.let { path ->
                 val file = File(path)
                 if (file.exists()) {
-                    val deleted = file.delete()
-                    if (!deleted) {
-                        println("Не удалось удалить файл: $path")
-                    }
+                    file.delete()
                 }
             }
         } catch (e: Exception) {
