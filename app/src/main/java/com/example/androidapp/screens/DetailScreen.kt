@@ -30,6 +30,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import coil.compose.rememberAsyncImagePainter
 import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
+import java.io.File
 
 @Composable
 fun DetailScreen(animeId: Int?, viewModel: AnimeViewModel, onClickPreviousButton: () -> Unit) {
@@ -117,8 +118,16 @@ fun AnimeDetailScreen(anime: Anime, onClickPreviousButton: () -> Unit) {
                 )
             }
 
+            val imagePainter = rememberAsyncImagePainter(
+                model = if (!anime.localImagePath.isNullOrEmpty()) {
+                    File(anime.localImagePath)
+                } else {
+                    anime.fullImageUrl
+                }
+            )
+
             Image(
-                painter = rememberAsyncImagePainter(anime.fullImageUrl),
+                painter = imagePainter,
                 contentDescription = null,
                 modifier = Modifier
                     .size(300.dp)

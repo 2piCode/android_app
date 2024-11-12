@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences.core)
 
     implementation(libs.androidx.room.runtime)
+    implementation(libs.volley)
     kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
 

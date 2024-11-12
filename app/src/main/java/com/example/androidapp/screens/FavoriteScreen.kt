@@ -10,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.example.androidapp.R
 import com.example.androidapp.model.Anime
 import com.example.androidapp.model.AnimeViewModel
 
@@ -23,7 +25,7 @@ fun FavoriteScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "У вас пока нет сохранённых аниме.")
+            Text(text = stringResource(R.string.not_found_favorite_anime))
         }
     } else {
         LazyColumn(

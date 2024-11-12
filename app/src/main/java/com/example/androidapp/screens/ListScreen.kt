@@ -291,7 +291,7 @@ fun SearchBar(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             TextButton(onClick = onStartDateClick) {
-                Text(text = "Стартовая дата")
+                Text(text = stringResource(R.string.start_data_text))
             }
             if (startDate.isNotEmpty()) {
                 Text(
@@ -304,7 +304,7 @@ fun SearchBar(
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             TextButton(onClick = onEndDateClick) {
-                Text(text = "Конечная дата")
+                Text(text = stringResource(R.string.end_data_text))
             }
             if (endDate.isNotEmpty()) {
                 Text(
@@ -323,7 +323,7 @@ fun SearchBar(
         modifier = Modifier.fillMaxWidth()
     ) {
         TextButton(onClick = onClearFilters) {
-            Text("Clear Filters")
+            Text(stringResource(R.string.clear_filters))
         }
     }
 }
