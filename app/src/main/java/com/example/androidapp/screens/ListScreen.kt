@@ -66,10 +66,15 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
     var selectedStartDate by remember { mutableStateOf(viewModelUiState.startDate) }
     var selectedEndDate by remember { mutableStateOf(viewModelUiState.endDate) }
 
-    if (showStartDatePicker) {
+    fun showDatePickerDialog(
+        initialDate: String,
+        onDateSelected: (String) -> Unit,
+        minDate: Long = 0L,
+        maxDate: Long? = null
+    ) {
         val calendar = Calendar.getInstance()
-        if (selectedStartDate.isNotEmpty()) {
-            val date = dateFormat.parse(selectedStartDate)
+        if (initialDate.isNotEmpty()) {
+            val date = dateFormat.parse(initialDate)
             date?.let { calendar.time = it }
         }
 
@@ -78,12 +83,29 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
             { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
                 val newDate = Calendar.getInstance()
                 newDate.set(year, month, dayOfMonth)
-                selectedStartDate = dateFormat.format(newDate.time)
+                val formattedDate = dateFormat.format(newDate.time)
+                onDateSelected(formattedDate)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.minDate = minDate
+            maxDate?.let { datePicker.maxDate = it }
+            show()
+        }
+    }
+
+    if (showStartDatePicker) {
+        showDatePickerDialog(
+            initialDate = selectedStartDate,
+            onDateSelected = { newStartDate ->
+                selectedStartDate = newStartDate
+                viewModel.onSearchCriteriaChange(startDate = newStartDate)
                 showStartDatePicker = false
-                viewModel.onSearchCriteriaChange(startDate = selectedStartDate)
 
                 if (selectedEndDate.isNotEmpty()) {
-                    val start = dateFormat.parse(selectedStartDate)
+                    val start = dateFormat.parse(newStartDate)
                     val end = dateFormat.parse(selectedEndDate)
                     if (start != null && end != null && start.after(end)) {
                         selectedEndDate = ""
@@ -91,48 +113,22 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
                     }
                 }
             },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            if (selectedEndDate.isNotEmpty()) {
-                val end = dateFormat.parse(selectedEndDate)
-                end?.let { datePicker.minDate = 0L; datePicker.maxDate = it.time }
-            }
-
-            setOnCancelListener { showStartDatePicker = false }
-            show()
-        }
+            minDate = 0L,
+            maxDate = selectedEndDate.takeIf { it.isNotEmpty() }?.let { dateFormat.parse(it)?.time }
+        )
     }
 
     if (showEndDatePicker) {
-        val calendar = Calendar.getInstance()
-        if (selectedEndDate.isNotEmpty()) {
-            val date = dateFormat.parse(selectedEndDate)
-            date?.let { calendar.time = it }
-        }
-
-        DatePickerDialog(
-            context,
-            { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-                val newDate = Calendar.getInstance()
-                newDate.set(year, month, dayOfMonth)
-                selectedEndDate = dateFormat.format(newDate.time)
+        showDatePickerDialog(
+            initialDate = selectedEndDate,
+            onDateSelected = { newEndDate ->
+                selectedEndDate = newEndDate
+                viewModel.onSearchCriteriaChange(endDate = newEndDate)
                 showEndDatePicker = false
-                viewModel.onSearchCriteriaChange(endDate = selectedEndDate)
             },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            if (selectedStartDate.isNotEmpty()) {
-                val start = dateFormat.parse(selectedStartDate)
-                start?.let { datePicker.minDate = it.time }
-            }
-
-            setOnCancelListener { showEndDatePicker = false }
-            show()
-        }
+            minDate = selectedStartDate.takeIf { it.isNotEmpty() }
+                ?.let { dateFormat.parse(it)?.time } ?: 0L
+        )
     }
 
     Column(
@@ -140,7 +136,6 @@ fun ListScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
         SearchBar(
             query = searchQuery,
             onQueryChange = { query ->

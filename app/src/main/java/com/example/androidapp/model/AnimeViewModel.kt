@@ -1,6 +1,7 @@
 package com.example.androidapp.model
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
@@ -12,7 +13,10 @@ import kotlinx.coroutines.launch
 import okio.IOException
 import retrofit2.HttpException
 
-class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()) : ViewModel() {
+class AnimeViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+    private val repository: AnimeRepository = AnimeRepository(application.applicationContext)
     private val _uiState = MutableStateFlow(AnimeUiState())
     val uiState: StateFlow<AnimeUiState> = _uiState
 
@@ -60,7 +64,19 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
     }
 
     init {
-        loadInitialAnime()
+        viewModelScope.launch {
+            repository.searchFlow.collect { flow ->
+                if (flow.query.isBlank() && flow.startDate.isBlank() && flow.endDate.isBlank()) {
+                    loadInitialAnime()
+                } else {
+                    onSearchCriteriaChange(
+                        flow.query,
+                        flow.startDate,
+                        flow.endDate
+                    )
+                }
+            }
+        }
     }
 
     private fun loadInitialAnime() {
@@ -93,13 +109,19 @@ class AnimeViewModel(private val repository: AnimeRepository = AnimeRepository()
         startDate: String = _uiState.value.startDate,
         endDate: String = _uiState.value.endDate
     ) {
-        _uiState.update {
-            it.copy(
-                searchQuery = query,
-                startDate = startDate,
-                endDate = endDate
-            )
+        viewModelScope.launch {
+            repository.saveQuery(query);
+            repository.saveStartDate(startDate)
+            repository.saveEndDate(endDate)
+            _uiState.update {
+                it.copy(
+                    searchQuery = query,
+                    startDate = startDate,
+                    endDate = endDate
+                )
+            }
         }
+
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(500)
