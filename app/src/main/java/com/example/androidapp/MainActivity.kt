@@ -35,7 +35,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.androidapp.data.SearchNotification
-import com.example.androidapp.model.AnimeViewModel
+import com.example.androidapp.data.repository.ProfileRepository
+import com.example.androidapp.model.anime.AnimeViewModel
+import com.example.androidapp.presentation.profile.screen.EditProfileScreen
+import com.example.androidapp.presentation.profile.screen.ProfileScreen
+import com.example.androidapp.presentation.profile.viewModel.EditProfileViewModel
+import com.example.androidapp.presentation.profile.viewModel.ProfileViewModel
 import com.example.androidapp.screens.DetailScreen
 import com.example.androidapp.screens.FavoriteScreen
 import com.example.androidapp.screens.HomeScreen
@@ -60,6 +65,9 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     val navController = rememberNavController()
     val animeViewModel: AnimeViewModel = viewModel()
+    val repository = ProfileRepository(navController.context)
+    val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(repository))
+    val editProfileViewModel : EditProfileViewModel = viewModel(factory = EditProfileViewModel.Factory(repository))
     val searchNotification = remember { SearchNotification(animeViewModel) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -126,6 +134,12 @@ fun MainScreen() {
                     navController.popBackStack()
                 })
             }
+            composable(Screen.Profile.title) {
+                ProfileScreen(navController, profileViewModel)
+            }
+            composable(Screen.ProfileEdit.title) {
+                EditProfileScreen(navController, editProfileViewModel)
+            }
         }
     }
 }
@@ -135,7 +149,8 @@ fun BottomBar(navController: NavController, currentRoute: String, isSearchChange
     val bottomItems = listOf(
         Screen.Home,
         Screen.List,
-        Screen.Favorite
+        Screen.Favorite,
+        Screen.Profile
     )
 
     NavigationBar {
