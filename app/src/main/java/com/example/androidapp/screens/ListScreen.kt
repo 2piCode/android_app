@@ -46,8 +46,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.androidapp.R
 import com.example.androidapp.data.SearchNotification
-import com.example.androidapp.model.Anime
-import com.example.androidapp.model.AnimeViewModel
+import com.example.androidapp.model.anime.Anime
+import com.example.androidapp.model.anime.AnimeViewModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar

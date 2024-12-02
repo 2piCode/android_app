@@ -1,8 +1,8 @@
 package com.example.androidapp.data
 
 import androidx.room.TypeConverter
-import com.example.androidapp.model.Genre
-import com.example.androidapp.model.StreamingUrl
+import com.example.androidapp.model.anime.Genre
+import com.example.androidapp.model.anime.StreamingUrl
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

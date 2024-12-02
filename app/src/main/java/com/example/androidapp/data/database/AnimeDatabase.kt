@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.androidapp.data.dao.AnimeDao
-import com.example.androidapp.model.Anime
+import com.example.androidapp.model.anime.Anime
 
 @Database(entities = [Anime::class], version = 1, exportSchema = false)
 abstract class AnimeDatabase : RoomDatabase() {

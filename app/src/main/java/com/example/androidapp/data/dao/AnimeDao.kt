@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.example.androidapp.model.Anime
+import com.example.androidapp.model.anime.Anime
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -1,6 +1,6 @@
 package com.example.androidapp.data
 
-import com.example.androidapp.model.AnimeViewModel
+import com.example.androidapp.model.anime.AnimeViewModel
 
 class SearchNotification(
     private val viewModel: AnimeViewModel

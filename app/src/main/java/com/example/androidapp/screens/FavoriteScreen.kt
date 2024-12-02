@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.androidapp.R
-import com.example.androidapp.model.Anime
-import com.example.androidapp.model.AnimeViewModel
+import com.example.androidapp.model.anime.Anime
+import com.example.androidapp.model.anime.AnimeViewModel
 
 @Composable
 fun FavoriteScreen(viewModel: AnimeViewModel, onClick: (Int) -> Unit) {

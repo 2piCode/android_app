@@ -28,8 +28,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import coil.compose.rememberAsyncImagePainter
-import com.example.androidapp.model.Anime
-import com.example.androidapp.model.AnimeViewModel
+import com.example.androidapp.model.anime.Anime
+import com.example.androidapp.model.anime.AnimeViewModel
 import java.io.File
 
 @Composable

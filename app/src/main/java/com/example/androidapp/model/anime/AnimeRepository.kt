@@ -1,4 +1,4 @@
-package com.example.androidapp.model
+package com.example.androidapp.model.anime
 
 import android.content.Context
 import android.graphics.Bitmap

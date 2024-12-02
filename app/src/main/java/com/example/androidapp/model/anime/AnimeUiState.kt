@@ -1,4 +1,4 @@
-package com.example.androidapp.model
+package com.example.androidapp.model.anime
 
 data class AnimeUiState(
     val animeList: List<Anime> = emptyList(),

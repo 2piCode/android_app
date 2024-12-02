@@ -1,4 +1,4 @@
-package com.example.androidapp.model
+package com.example.androidapp.model.anime
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
