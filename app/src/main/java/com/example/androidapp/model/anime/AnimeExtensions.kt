@@ -1,4 +1,4 @@
-package com.example.androidapp.model
+package com.example.androidapp.model.anime
 
 import com.example.androidapp.network.AnimeData
 
