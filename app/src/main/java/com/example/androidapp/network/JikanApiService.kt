@@ -13,6 +13,8 @@ interface JikanApiService {
     @GET("anime")
     suspend fun searchAnime(
         @Query("q") query: String,
+        @Query("start_date") startDate: String,
+        @Query("end_date") endDate: String,
         @Query("limit") limit: Int = 5
     ): AnimeListResponse
 }

@@ -1,4 +1,9 @@
-package com.example.androidapp.model
+package com.example.androidapp.model.anime
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.example.androidapp.data.Converters
 
 enum class Genre(val s: String) {
     ACTION("Action"),
@@ -29,12 +34,15 @@ data class StreamingUrl(
     val url: String = ""
 )
 
+@Entity(tableName = "anime")
+@TypeConverters(Converters::class)
 data class Anime(
-    val id: Int,
+    @PrimaryKey val id: Int,
     val title: String,
     val synopsis: String,
     val fullImageUrl: String,
     val smallImageUrl: String,
+    val localImagePath: String? = null,
     val year: Int,
     val genres: List<Genre>,
     val streamingUrls: List<StreamingUrl>?
