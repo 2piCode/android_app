@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,8 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,14 +62,16 @@ import com.example.androidapp.R
 import com.example.androidapp.presentation.profile.viewModel.EditProfileViewModel
 
 import java.io.File
+import java.time.LocalTime
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditProfileScreen(navController: NavHostController, viewModel : EditProfileViewModel) {
+fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileViewModel) {
     val context = LocalContext.current
 
     val state = viewModel.viewState
+    viewModel.updateContext(context)
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -75,14 +82,14 @@ fun EditProfileScreen(navController: NavHostController, viewModel : EditProfileV
 
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (!isGranted) {
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { map: Map<String, Boolean> ->
+            if (map.values.contains(false)) {
                 val dialog = AlertDialog.Builder(context)
                     .setMessage("Ну, так не пойдет...")
                     .setCancelable(false)
                     .setPositiveButton("OK") { _, _ ->
-                        navController.popBackStack()
+                        viewModel.onPermissionDenied()
                     }
 
                 dialog.show()
@@ -162,21 +169,60 @@ fun EditProfileScreen(navController: NavHostController, viewModel : EditProfileV
                     .fillMaxWidth()
                     .padding(top = 16.dp)
             )
+            TextField(
+                value = state.timeString,
+                onValueChange = { viewModel.onTimeChanged(it) },
+                label = { Text("Время любимой пары") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                isError = state.timeError != null,
+                trailingIcon = {
+                    Icon(
+                        painterResource(id = R.drawable.time),
+                        null,
+                        modifier = Modifier.clickable { viewModel.onTimeInputClicked() })
+                }
+            )
+            state.timeError?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (state.isNeedToShowTimePicker) {
+                DialWithDialogExample(
+                    onConfirm = { h, m -> viewModel.onTimeConfirmed(h, m) },
+                    onDismiss = { viewModel.onTimeDialogDismiss() },
+                    time = state.time
+                )
+            }
         }
     }
 
     if (state.isNeedToShowPermission) {
         LaunchedEffect(Unit) {
-            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q &&
+            val permissions = mutableListOf<String>()
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
                 ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                requestPermissionLauncher.launch(
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
+                permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
+
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+
+            requestPermissionLauncher.launch(permissions.toTypedArray())
         }
     }
 
@@ -214,7 +260,10 @@ fun EditProfileScreen(navController: NavHostController, viewModel : EditProfileV
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
-                    Divider(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                    Divider(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -238,7 +287,10 @@ fun EditProfileScreen(navController: NavHostController, viewModel : EditProfileV
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Divider(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                    Divider(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -266,5 +318,51 @@ fun EditProfileScreen(navController: NavHostController, viewModel : EditProfileV
             }
         }
     }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DialWithDialogExample(
+    onConfirm: (Int, Int) -> Unit,
+    onDismiss: () -> Unit,
+    time: LocalTime
+) {
+    val timePickerState = rememberTimePickerState(
+        initialHour = time.hour,
+        initialMinute = time.minute,
+        is24Hour = true,
+    )
+
+    TimePickerDialog(
+        onDismiss = { onDismiss() },
+        onConfirm = { onConfirm(timePickerState.hour, timePickerState.minute) }
+    ) {
+        TimePicker(
+            state = timePickerState,
+        )
+    }
+}
+
+@Composable
+fun TimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        dismissButton = {
+            TextButton(onClick = { onDismiss() }) {
+                Text("Отмена")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm() }) {
+                Text("OK")
+            }
+        },
+        text = { content() }
+    )
 }
 

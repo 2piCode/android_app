@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -37,6 +38,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.androidapp.data.SearchNotification
 import com.example.androidapp.data.repository.ProfileRepository
 import com.example.androidapp.model.anime.AnimeViewModel
+import com.example.androidapp.presentation.profile.channelManager.NotificationChannelManager
 import com.example.androidapp.presentation.profile.screen.EditProfileScreen
 import com.example.androidapp.presentation.profile.screen.ProfileScreen
 import com.example.androidapp.presentation.profile.viewModel.EditProfileViewModel
@@ -49,9 +51,17 @@ import com.example.androidapp.screens.Screen
 import com.example.androidapp.ui.theme.AndroidAppTheme
 
 class MainActivity : ComponentActivity() {
+    private val channelManager: NotificationChannelManager by lazy {
+        NotificationChannelManager(
+            notificationManager = NotificationManagerCompat.from(this),
+            context = this
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        channelManager.createNotificationChannels()
         setContent {
             AndroidAppTheme {
                 MainScreen()
@@ -66,8 +76,10 @@ fun MainScreen() {
     val navController = rememberNavController()
     val animeViewModel: AnimeViewModel = viewModel()
     val repository = ProfileRepository(navController.context)
-    val profileViewModel : ProfileViewModel = viewModel(factory = ProfileViewModel.Factory(repository))
-    val editProfileViewModel : EditProfileViewModel = viewModel(factory = EditProfileViewModel.Factory(repository))
+    val profileViewModel: ProfileViewModel =
+        viewModel(factory = ProfileViewModel.Factory(repository))
+    val editProfileViewModel: EditProfileViewModel =
+        viewModel(factory = EditProfileViewModel.Factory(navController, repository))
     val searchNotification = remember { SearchNotification(animeViewModel) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()

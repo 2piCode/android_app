@@ -24,6 +24,8 @@
     <string name="photo">Фотографии</string>
     <string name="profile">Профиль</string>
     <string name="resume">Резюме</string>
+    <string name="notifications_channel_id">notification_channel</string>
+    <string name="notifications_channel_name">Напоминание</string>
 
     "
 </resources>
